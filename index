@@ -1,0 +1,191 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <link rel="manifest" href="https://raw.githubusercontent.com/egyptron/songsim-pwa/refs/heads/main/manifest.json">
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Bitra Read</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            text-align: center;
+            background-color: #f4f4f4;
+            padding: 20px;
+        }
+        h1 {
+            color: #333;
+        }
+        .pdf-container {
+            max-width: 800px;
+            margin: 20px auto;
+            padding: 20px;
+            background-color: #fff;
+            border-radius: 8px;
+            box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+        }
+        #pdfViewer {
+            border: 1px solid #ccc;
+            margin-top: 10px;
+            width: 100%;
+        }
+        .navigation {
+            margin-top: 20px;
+        }
+        button {
+            padding: 8px 16px;
+            font-size: 16px;
+            margin: 0 10px;
+            cursor: pointer;
+            background-color: #007BFF;
+            color: white;
+            border: none;
+            border-radius: 5px;
+        }
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+        .print-container {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Welcome to Bitra Read</h1>
+    <div class="pdf-container">
+        <input type="file" id="pdfInput" accept="application/pdf">
+        <canvas id="pdfViewer"></canvas>
+        
+        <div class="navigation">
+            <button id="prevPage" disabled>Previous</button>
+            <button id="nextPage" disabled>Next</button>
+        </div>
+
+        <div class="print-container">
+            <button id="printPageButton" disabled>Print this page</button>
+            <button id="printFullPDFButton" disabled>Print full PDF</button>
+        </div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+    <script>
+        const pdfInput = document.getElementById('pdfInput');
+        const pdfViewer = document.getElementById('pdfViewer');
+        const prevPageButton = document.getElementById('prevPage');
+        const nextPageButton = document.getElementById('nextPage');
+        const printPageButton = document.getElementById('printPageButton');
+        const printFullPDFButton = document.getElementById('printFullPDFButton');
+        
+        let pdfDoc = null;
+        let currentPage = 1;
+        let totalPages = 0;
+
+        pdfInput.addEventListener('change', async (event) => {
+            const file = event.target.files[0];
+            if (file && file.type === "application/pdf") {
+                const fileURL = URL.createObjectURL(file);
+                pdfDoc = await pdfjsLib.getDocument(fileURL).promise;
+                totalPages = pdfDoc.numPages;
+                currentPage = 1;
+                renderPage(currentPage);
+                prevPageButton.disabled = currentPage === 1;
+                nextPageButton.disabled = currentPage === totalPages;
+                printPageButton.disabled = false;
+                printFullPDFButton.disabled = false;
+            } else {
+                alert("Please upload a valid PDF file.");
+            }
+        });
+
+        prevPageButton.addEventListener('click', () => {
+            if (currentPage > 1) {
+                currentPage--;
+                renderPage(currentPage);
+                nextPageButton.disabled = false;
+                if (currentPage === 1) {
+                    prevPageButton.disabled = true;
+                }
+            }
+        });
+
+        nextPageButton.addEventListener('click', () => {
+            if (currentPage < totalPages) {
+                currentPage++;
+                renderPage(currentPage);
+                prevPageButton.disabled = false;
+                if (currentPage === totalPages) {
+                    nextPageButton.disabled = true;
+                }
+            }
+        });
+
+        // Render the selected page of the PDF
+        async function renderPage(pageNum) {
+            const page = await pdfDoc.getPage(pageNum);
+            const viewport = page.getViewport({ scale: 1.5 });
+            const context = pdfViewer.getContext('2d');
+            pdfViewer.width = viewport.width;
+            pdfViewer.height = viewport.height;
+            await page.render({ canvasContext: context, viewport: viewport }).promise;
+        }
+
+        // Print the current page as a PDF
+        printPageButton.addEventListener('click', () => {
+            const printWindow = window.open('', '_blank', 'width=800,height=600');
+            printWindow.document.write('<html><head><title>Print PDF</title></head><body>');
+
+            // Add a title for the printed page
+            printWindow.document.write('<h2>Printing PDF - Page ' + currentPage + '</h2>');
+
+            // Create a canvas and render the current page into it for printing
+            const canvas = document.createElement('canvas');
+            const context = canvas.getContext('2d');
+            
+            pdfDoc.getPage(currentPage).then((page) => {
+                const viewport = page.getViewport({ scale: 1.5 });
+                canvas.width = viewport.width;
+                canvas.height = viewport.height;
+                
+                // Render the current page to the canvas
+                page.render({ canvasContext: context, viewport: viewport }).promise.then(() => {
+                    printWindow.document.body.appendChild(canvas);
+                    printWindow.document.write('</body></html>');
+                    printWindow.document.close();
+                    printWindow.print();
+                });
+            });
+        });
+
+        // Print the full PDF (all pages)
+        printFullPDFButton.addEventListener('click', () => {
+            const printWindow = window.open('', '_blank', 'width=800,height=600');
+            printWindow.document.write('<html><head><title>Print PDF</title></head><body>');
+
+            // Loop through all pages and render them for printing
+            const renderAllPages = async () => {
+                for (let i = 1; i <= totalPages; i++) {
+                    const canvas = document.createElement('canvas');
+                    const context = canvas.getContext('2d');
+
+                    const page = await pdfDoc.getPage(i);
+                    const viewport = page.getViewport({ scale: 1.5 });
+                    canvas.width = viewport.width;
+                    canvas.height = viewport.height;
+
+                    await page.render({ canvasContext: context, viewport: viewport }).promise;
+                    printWindow.document.body.appendChild(canvas);
+                    printWindow.document.write('<hr>'); // Add a page break
+                }
+
+                printWindow.document.write('</body></html>');
+                printWindow.document.close();
+                printWindow.print();
+            };
+
+            renderAllPages();
+        });
+    </script>
+
+</body>
+</html>
