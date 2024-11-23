@@ -1,7 +1,7 @@
 {
-  "name": "SongSim",
-  "short_name": "SS",
-  "description": "SongSim Application",
+  "name": "Food Shi",
+  "short_name": "FoodShi",
+  "description": "FoodShi PWA Test",
   "start_url": "/",
   "display": "standalone",
   "background_color": "#4287f5",
