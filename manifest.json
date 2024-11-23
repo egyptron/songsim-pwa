@@ -1,0 +1,21 @@
+{
+  "name": "SongSim",
+  "short_name": "SS",
+  "description": "SongSim Application",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#4287f5",
+  "theme_color": "#4287f5",
+  "icons": [
+    {
+      "src": "https://i.imgur.com/3u3SpKf.jpeg",
+      "sizes": "192x192",
+      "type": "image/jpeg"
+    },
+    {
+      "src": "https://i.imgur.com/3u3SpKf.jpeg",
+      "sizes": "512x512",
+      "type": "image/jpeg"
+    }
+  ]
+}
